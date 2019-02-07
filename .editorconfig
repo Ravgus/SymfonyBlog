@@ -1,0 +1,13 @@
+root = true
+
+[_HTML/**.*]
+charset = utf-8
+indent_style = tab
+trim_trailing_whitespace = true
+end_of_line = lf
+insert_final_new_line = true
+
+# Только для package.json и yarn.lock
+[{package.json, package-lock.json, yarn.lock, *.yml}]
+indent_style = space
+indent_size = 2
