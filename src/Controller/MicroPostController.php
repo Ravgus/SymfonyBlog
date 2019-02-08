@@ -9,17 +9,22 @@
 namespace App\Controller;
 
 use App\Entity\MicroPost;
+use App\Entity\User;
 use App\Form\MicroPostType;
 use App\Repository\MicroPostRepository;
+use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\Security;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\HttpFoundation\Session\Flash\FlashBag;
 use Symfony\Component\HttpFoundation\Session\Flash\FlashBagInterface;
+use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Routing\RouterInterface;
+use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
 /**
  * @Route("/micro-post")
@@ -48,13 +53,18 @@ class MicroPostController extends AbstractController
      * @var FlashBagInterface
      */
     private $flashBag;
+    /**
+     * @var AuthorizationCheckerInterface
+     */
+    private $authorizationChecker;
 
     public function __construct(
         MicroPostRepository $microPostRepository,
         FormFactoryInterface $formFactory,
         EntityManagerInterface $entityManager,
         RouterInterface $router,
-        FlashBagInterface $flashBag
+        FlashBagInterface $flashBag,
+        AuthorizationCheckerInterface $authorizationChecker
     )
     {
         $this->microPostRepository = $microPostRepository;
@@ -62,23 +72,42 @@ class MicroPostController extends AbstractController
         $this->entityManager = $entityManager;
         $this->router = $router;
         $this->flashBag = $flashBag;
+        $this->authorizationChecker = $authorizationChecker;
     }
 
     /**
      * @Route("/", name="micro_post_index")
      */
-    public function index()
+    public function index(UserRepository $userRepository)
     {
+        $currentUser = $this->getUser();
+        $usersToFollow = [];
+
+        if ($currentUser instanceof User) {
+            $posts = $this->microPostRepository->findAllByUsers($currentUser->getFollowing());
+            $usersToFollow = count($posts) === 0 ? $userRepository->findAllWithMoreThan5PostsExceptUser($currentUser) : [];
+        } else {
+            $posts = $this->microPostRepository->findBy([], ['time' => 'DESC']);
+        }
+
         return $this->render('micro-post/index.html.twig', [
-            'posts' => $this->microPostRepository->findBy([], ['time' => 'DESC'])
+            'posts' => $posts,
+            'usersToFollow' => $usersToFollow
         ]);
     }
 
     /**
      * @Route("/edit/{id}", name="micro_post_edit")
+     * @Security("is_granted('edit', microPost)", message="Access denied")
      */
     public function edit(MicroPost $microPost, Request $request)
     {
+        //$this->denyAccessUnlessGranted('edit', $microPost); //1
+
+        /*if (!$this->authorizationChecker->isGranted('edit', $microPost)) { //2
+            throw new UnauthorizedHttpException();
+        }*/
+
         $form = $this->formFactory->create(MicroPostType::class, $microPost);
         $form->handleRequest($request);
 
@@ -98,6 +127,7 @@ class MicroPostController extends AbstractController
 
     /**
      * @Route("/delete/{id}", name="micro_post_delete")
+     * @Security("is_granted('delete', microPost)", message="Access denied")
      */
     public function delete(MicroPost $microPost)
     {
@@ -111,11 +141,14 @@ class MicroPostController extends AbstractController
 
     /**
      * @Route("/add", name="micro_post_add")
+     * @Security("is_granted('ROLE_USER')")
      */
     public function add(Request $request)
     {
+        $user = $this->getUser();
+
         $microPost = new MicroPost();
-        $microPost->setTime(new \DateTime());
+        $microPost->setUser($user);
 
         $form = $this->formFactory->create(MicroPostType::class, $microPost);
         $form->handleRequest($request);
@@ -129,6 +162,18 @@ class MicroPostController extends AbstractController
 
         return $this->render('micro-post/add.html.twig', [
             'form' => $form->createView()
+        ]);
+    }
+
+    /**
+     * @Route("/user/{username}", name="micro_post_user")
+     */
+    public function userPosts(User $userWithPosts)
+    {
+        return $this->render('micro-post/user-posts.html.twig', [
+            //'posts' => $this->microPostRepository->findBy(['user' => $userWithPosts], ['time' => 'DESC'])
+            'posts' => $userWithPosts->getPosts(),
+            'user' => $userWithPosts
         ]);
     }
 

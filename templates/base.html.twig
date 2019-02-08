@@ -29,7 +29,7 @@
             {% if is_granted('ROLE_USER') %}
                 <li class="nav-item text-nowrap">
                     <a class="nav-link"
-                       href="#">{{ app.user.fullName }}</a>
+                       href="{{ path('micro_post_user', {'username': app.user.userName}) }}">{{ app.user.fullName }}</a>
                 </li>
                 <li class="nav-item text-nowrap">
                     {#<a class="nav-link"
@@ -41,6 +41,10 @@
                 <li class="nav-item text-nowrap">
                     <a class="nav-link"
                        href="{{ path('security_login') }}">Sign in</a>
+                </li>
+                <li class="nav-item text-nowrap">
+                    <a class="nav-link"
+                       href="{{ path('user_register') }}">Sign up</a>
                 </li>
             {% endif %}
         </ul>

@@ -21,6 +21,11 @@ class RegisterController extends AbstractController
      */
     public function register(Request $request, UserPasswordEncoderInterface $passwordEncoder)
     {
+        /*if ($this->getUser() !== null) {*/
+        if ($this->getUser() instanceof User) {
+            return $this->redirectToRoute('micro_post_index');
+        }
+
         $user = new User();
 
         $form = $this->createForm(UserType::class, $user);
