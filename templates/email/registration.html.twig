@@ -1,4 +1,16 @@
+{#
 <h1>Welcome</h1>
-Hello {{ user.fullName }}! You've registered into the app!<br><br>
-Please confirm account by clicking this <a href="{{ url('security_confirm', {'token': user.confirmationToken}) }}">link</a>
-To login og to the <a href="{{ url('security_login') }}">Login page</a><br><br>
+<p>Hello {{ user.fullName }}! You've registered into the app!</p><br><br>
+<p>Please confirm account by clicking this <a href="{{ url('security_confirm', {'token': user.confirmationToken}) }}">link</a></p>
+<p>To login og to the <a href="{{ url('security_login') }}">Login page</a></p><br><br>
+
+<h1>Welcome</h1>
+<p>Hello %name%! You've registered into the app!</p><br><br>
+<p>Please confirm account by clicking this <a href="%confirm-link%">link</a></p>
+<p>To login og to the <a href="%login-link%">Login page</a></p><br><br>#}
+
+{{ 'email.registration'|trans({
+    '%name%': user.fullName,
+    '%confirm-link%': url('security_confirm', {'token': user.confirmationToken}),
+    '%login-link%': url('security_login')
+})|raw }}
