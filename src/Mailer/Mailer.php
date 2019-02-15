@@ -40,7 +40,7 @@ class Mailer
         ]);
 
         $message = (new \Swift_Message())
-            ->setSubject('Welcome to the micro-post app!!!')
+            ->setSubject('Welcome to the micro-post app!')
             ->setFrom($this->mailFrom)
             ->setTo($user->getEmail())
             ->setBody($body, 'text/html');
