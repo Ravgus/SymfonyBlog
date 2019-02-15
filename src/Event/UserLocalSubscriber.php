@@ -2,26 +2,28 @@
 /**
  * Created by PhpStorm.
  * User: ravgus
- * Date: 14.02.19
- * Time: 17:39
+ * Date: 15.02.19
+ * Time: 11:00
  */
 
 namespace App\Event;
 
+use App\Entity\User;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Symfony\Component\HttpKernel\Event\GetResponseEvent;
-use Symfony\Component\HttpKernel\KernelEvents;
+use Symfony\Component\HttpFoundation\Session\SessionInterface;
+use Symfony\Component\Security\Http\Event\InteractiveLoginEvent;
+use Symfony\Component\Security\Http\SecurityEvents;
 
-class LocalSubscriber implements EventSubscriberInterface
+class UserLocalSubscriber implements EventSubscriberInterface
 {
     /**
-     * @var string
+     * @var SessionInterface
      */
-    private $defaultLocale;
+    private $session;
 
-    public function __construct($defaultLocale = 'en')
+    public function __construct(SessionInterface $session)
     {
-        $this->defaultLocale = $defaultLocale;
+        $this->session = $session;
     }
 
     /**
@@ -45,29 +47,18 @@ class LocalSubscriber implements EventSubscriberInterface
     public static function getSubscribedEvents()
     {
         return [
-            KernelEvents::REQUEST => [
-                'onKernelRequest',
-                20
+            SecurityEvents::INTERACTIVE_LOGIN => [
+                'onInteractiveLogin',
+                15
             ]
         ];
     }
 
-    public function onKernelRequest(GetResponseEvent $responseEvent)
+    public function onInteractiveLogin(InteractiveLoginEvent $event)
     {
-        $request = $responseEvent->getRequest();
+        /** @var User $user */
+        $user = $event->getAuthenticationToken()->getUser();
 
-        if (!$request->hasPreviousSession()) {
-            return;
-        }
-
-        if ($locale = $request->attributes->get('_locale')) {
-            $request->getSession()
-                ->set('_locale', $locale);
-        } else {
-            $request->setLocale(
-                $request->getSession()
-                    ->get('_locale', $this->defaultLocale)
-            );
-        }
+        $this->session->set('_locale', $user->getPreferences()->getLocale());
     }
 }
